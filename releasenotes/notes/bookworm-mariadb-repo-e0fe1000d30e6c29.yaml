@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Debian Bookworm images now use MariaDB upstream repository as package
-    source.

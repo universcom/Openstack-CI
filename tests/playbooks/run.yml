@@ -10,7 +10,7 @@
         logs_dir: "{{ kolla_build_logs_dir }}"
         quiet: true
         base: "{{ base_distro }}"
-        engine: "{{ container_engine }}"
+        install_type: "{{ install_type }}"
         template_override: /etc/kolla/template_overrides.j2
         # NOTE(yoctozepto): to avoid issues with IPv6 not enabled in the docker daemon
         # and since we don't need isolated networks here, use host networking
@@ -23,12 +23,22 @@
         mode: 0777
       become: true
 
+    - name: Add base_tag config
+      vars:
+        kolla_base_tag_config:
+          DEFAULT:
+            base_tag: "{{ base_distro_version }}"
+      set_fact:
+        kolla_build_config: "{{ kolla_build_config | combine(kolla_base_tag_config, recursive=True) }}"
+      when:
+        - base_distro_version is defined
+
     - name: Add publisher config
       vars:
         kolla_publisher_config:
           DEFAULT:
             namespace: "{{ kolla_namespace }}"
-            tag: "{{ zuul.branch | basename }}-{{ base_distro }}-{{ base_distro_version }}{{ tag_suffix }}"
+            tag: "{{ (zuul.branch | basename) ~ tag_suffix }}"
       set_fact:
         kolla_build_config: "{{ kolla_build_config | combine(kolla_publisher_config, recursive=True) }}"
       when:

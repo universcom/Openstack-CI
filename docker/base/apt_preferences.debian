@@ -1,4 +1,0 @@
-# NOTE(hrw): we do not want backports unless requested
-Package: *
-Pin: release n=bookworm-backports
-Pin-Priority: -1000

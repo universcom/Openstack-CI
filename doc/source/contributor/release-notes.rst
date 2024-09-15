@@ -22,12 +22,9 @@ Kolla uses the following release notes sections:
 - ``prelude`` --- filled in by the PTL before each release or RC.
 
 Other release note types may be applied per common sense.
-
-When a release note is required:
-
-- ``feature`` - best included with docs change (if separate from the code)
-- ``user impacting`` - to improve visibility of the change for users
-
+Each change should include a release note unless being a ``TrivialFix``
+change or affecting only docs or CI. Such changes should `not` include
+a release note to avoid confusion.
 Remember release notes are mostly for end users which, in case of Kolla,
 are OpenStack administrators/operators.
 In case of doubt, the core team will let you know what is required.

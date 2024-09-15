@@ -1,4 +1,0 @@
----
-upgrade:
-  - |
-    Upgraded prometheus-memcached-exporter to version ``0.14.2``.

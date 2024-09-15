@@ -31,6 +31,7 @@ LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build
       'collectd-disk',
       'collectd-dns',
       'collectd-ipmi',
+      'collectd-log_logstash',
       'collectd-logparser',
       'collectd-mcelog',
       'collectd-mysql',
@@ -53,6 +54,13 @@ LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build
       'collectd-write_prometheus',
   ] %}
 
+  {% if not base_distro_tag.startswith('stream9') and not base_distro == 'rocky' %}
+      {% set collectd_packages = collectd_packages + [
+          'collectd-generic-jmx',
+          'collectd-memcachec'
+       ] %}
+  {% endif %}
+
   {% if base_arch =='x86_64' %}
       {% set collectd_packages = collectd_packages + [
         'collectd-hugepages',
@@ -61,6 +69,12 @@ LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build
         'collectd-rdt',
         'collectd-turbostat'
       ] %}
+
+      {% if not base_distro_tag.startswith('stream9') and not base_distro == 'rocky' %}
+          {% set collectd_packages = collectd_packages + [
+              'collectd-iptables'
+           ] %}
+      {% endif %}
   {% endif %}
 
 {% endif %}
@@ -68,8 +82,9 @@ LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build
 {{ macros.install_packages(collectd_packages | customizable("packages")) }}
 
 COPY extend_start.sh /usr/local/bin/kolla_extend_start
-RUN chmod 644 /usr/local/bin/kolla_extend_start \
+RUN chmod 755 /usr/local/bin/kolla_extend_start \
     && chown -R collectd /var/lib/collectd \
+    && chown -R collectd /etc/collectd* \
     && chown -R collectd /var/run/
 
 {% block collectd_footer %}{% endblock %}

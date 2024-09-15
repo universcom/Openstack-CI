@@ -1,4 +1,4 @@
-FROM {{ namespace }}/{{ image_prefix }}base:{{ tag }}
+FROM {{ namespace }}/{{ infra_image_prefix }}base:{{ tag }}
 {% block labels %}
 LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build_date }}"
 {% endblock %}
@@ -24,9 +24,8 @@ LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build
 
 {{ macros.install_packages(mariadb_base_packages | customizable("packages")) }}
 
-{# NOTE(mnasiadka): Latest clustercheck version as of May 2023 is 10.9 #}
 {% block mariadb_clustercheck_version %}
-ARG mariadb_clustercheck_version=10.9
+ARG mariadb_clustercheck_version=10.3
 ARG mariadb_clustercheck_url=https://src.fedoraproject.org/rpms/mariadb/raw/${mariadb_clustercheck_version}/f/clustercheck.sh
 {% endblock %}
 

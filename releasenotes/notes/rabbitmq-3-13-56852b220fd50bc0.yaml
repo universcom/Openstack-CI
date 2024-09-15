@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    ``RabbitMQ`` version has been upgraded to ``3.13``, and ``Erlang``
-    version to ``26.2``, the maximum supported by ``RabbitMQ 3.13``.

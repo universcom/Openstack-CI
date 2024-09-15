@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Added support for cross-compilation. Enabled the creation of container images
-    on emulated architectures.

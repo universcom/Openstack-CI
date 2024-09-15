@@ -4,10 +4,9 @@
 Weekly Kolla team meeting
 =========================
 
-The Kolla project meets every Wednesday in #openstack-kolla (`OFTC`_).
+Meeting time: Wednesdays at 15:00 UTC in #openstack-kolla (`OFTC`_).
 
-More info on how to join, including the meeting time:
-https://meetings.opendev.org/#Kolla_Team_Meeting
+More info on how to join: https://meetings.opendev.org/#Kolla_Team_Meeting
 
 We track CI, release, and feature status in the `whiteboard`_.
 
@@ -24,7 +23,6 @@ The regular agenda for the weekly meeting is as follows::
     * Review action items from the last meeting
     * CI status
     * Release tasks
-    * Regular stable releases (first meeting in a month)
     * Current cycle planning
     * Additional agenda (from whiteboard)
     * Open discussion

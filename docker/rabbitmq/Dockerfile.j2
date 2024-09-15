@@ -1,4 +1,4 @@
-FROM {{ namespace }}/{{ image_prefix }}base:{{ tag }}
+FROM {{ namespace }}/{{ infra_image_prefix }}base:{{ tag }}
 {% block labels %}
 LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build_date }}"
 {% endblock %}
@@ -9,21 +9,26 @@ LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build
 
 {{ macros.configure_user(name='rabbitmq') }}
 
-{{ macros.enable_extra_repos(['crb', 'erlang', 'rabbitmq']) }}
-
-{% block rabbitmq_apt_preferences %}
-{% if base_package_type == 'deb' %}
-COPY apt_preferences_rabbitmq.{{ base_distro }} /etc/apt/preferences.d/rabbitmq
+{# NOTE(hrw): erlang packages from Erlang Solutions needs libwx from EPEL #}
+{% if base_arch == 'aarch64' %}
+{{ macros.enable_extra_repos(['epel']) }}
 {% endif %}
-{% endblock %}
+
+{{ macros.enable_extra_repos(['crb', 'erlang', 'powertools', 'rabbitmq']) }}
 
 {% block rabbitmq_install %}
 {% if base_package_type == 'rpm' %}
 
     {% set rabbitmq_packages = [
-        'erlang-26.2.*',
-        'rabbitmq-server-3.13.*'
+        'hostname',
+        'rabbitmq-server-3.9.*'
     ] %}
+
+    {% if base_arch == 'aarch64' %}
+        {% set rabbitmq_packages = rabbitmq_packages + ['erlang-25.*'] %}
+    {% else %}
+        {% set rabbitmq_packages = rabbitmq_packages + ['erlang-25.2.*'] %}
+    {% endif %}
 
 {% elif base_package_type == 'deb' %}
     {% set rabbitmq_packages = [
@@ -57,7 +62,7 @@ RUN chmod 755 /usr/local/bin/healthcheck_rabbitmq
 {% endif %}
 
 COPY extend_start.sh /usr/local/bin/kolla_extend_start
-RUN chmod 644 /usr/local/bin/kolla_extend_start
+RUN chmod 755 /usr/local/bin/kolla_extend_start
 
 {% block rabbitmq_footer %}{% endblock %}
 {% block footer %}{% endblock %}

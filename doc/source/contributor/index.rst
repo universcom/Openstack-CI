@@ -13,7 +13,6 @@ We welcome everyone to join our project!
    :maxdepth: 2
 
    contributing
-   kolla-design-philosophy
    running-in-development
    adding-a-new-image
    genconfig
@@ -25,4 +24,3 @@ We welcome everyone to join our project!
    release-management
    meeting
    ci
-   versions

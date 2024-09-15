@@ -2,16 +2,11 @@
 Building Container Images
 =========================
 
-Firstly, ensure ``kolla`` and the container engine of your choice is installed.
-
-Currently supported container engines are ``docker`` and ``podman``.
+Firstly, ensure ``kolla`` is installed.
 
 .. code-block:: console
 
    python3 -m pip install kolla
-   #only one of these is needed:
-   python3 -m pip install podman
-   python3 -m pip install docker
 
 Then, the :command:`kolla-build` command is available for building
 Docker images.
@@ -119,6 +114,21 @@ To push images to a :kolla-ansible-doc:`local registry
 Build OpenStack from source
 ===========================
 
+When building images, there are two methods of the OpenStack install. One is
+``binary``. Another is ``source``. The ``binary`` means that OpenStack will be
+installed from apt/dnf. And the ``source`` means that OpenStack will be
+installed from upstream sources. The default method of the OpenStack install is
+``source``. It can be changed to ``binary`` using the ``-t`` option:
+
+.. code-block:: console
+
+   kolla-build -t binary
+
+.. note::
+
+   Building of binary images is deprecated in Yoga. Please switch to source
+   ones.
+
 The locations of OpenStack source code are written in ``kolla-build.conf``.
 The source's ``type`` supports ``url``, ``git`` and ``local``. The
 ``location`` of the ``local`` source type can point to either a directory
@@ -153,19 +163,6 @@ The ``kolla-build.conf`` file could look like this:
 
    Note that the name of the section should exactly match the image name
    you are trying to change source location for.
-
-If using the ``local`` source type, the ``--locals-base`` flag can be used to
-define a path prefix, which you can reference in the config.
-
-.. path etc/kolla/kolla-build.conf
-.. code-block:: ini
-
-  [DEFAULTS]
-  locals_base = /home/kolla/src
-
-  [heat-base]
-  type = local
-  location = $locals_base/heat
 
 .. _dockerfile-customisation:
 
@@ -214,7 +211,7 @@ First, create a file to contain the customisations, for example:
    {% extends parent_template %}
 
    # Horizon
-   {% block horizon_ubuntu_source_setup %}
+   {% block horizon_redhat_binary_setup %}
    RUN useradd --user-group myuser
    {% endblock %}
 
@@ -252,10 +249,10 @@ Packages customisation
 
 Packages installed as part of an image build can be overridden, appended to,
 and deleted. Taking the Horizon example, the following packages are installed
-as part of a package install (among others):
+as part of a binary install type build (among others):
 
-* ``gettext``
-* ``locales``
+* ``openstack-dashboard``
+* ``openstack-magnum-ui``
 
 To add a package to this list, say, ``iproute``, first create a file,
 for example, ``template-overrides.j2``. In it place the following:
@@ -289,31 +286,14 @@ append
 remove
     Remove a package from the default list.
 
-To remove a package from that list, say ``locales``, one would do:
+To remove a package from that list, say ``openstack-magnum-ui``, one would do:
 
 .. code-block:: jinja
 
    {% extends parent_template %}
 
    # Horizon
-   {% set horizon_packages_remove = ['locales'] %}
-
-An example of this is the Grafana plugins, which are mentioned in the next
-section.
-
-Grafana plugins
-^^^^^^^^^^^^^^^
-
-Additional Grafana plugins can be installed by adding the plugin name to the
-``grafana_plugins_append`` list. Plugins can also be removed by adding the
-plugin name to the ``grafana_plugins_remove`` list. Additionally the entire
-list can be overridden by setting the ``grafana_plugins_override`` variable.
-
-.. code-block:: ini
-
-   grafana_plugins_append:
-      - grafana-piechart-panel
-      - vonage-status-panel
+   {% set horizon_packages_remove = ['openstack-magnum-ui'] %}
 
 Python packages build options
 -----------------------------
@@ -357,6 +337,10 @@ repository may be missed on subsequent builds. To solve this, the
 ``kolla-build`` tool also supports cloning additional repositories at build
 time, which will be automatically made available to the build, within an
 archive named ``plugins-archive``.
+
+.. note::
+
+   The following is available for source build types only.
 
 To use this, add a section to ``kolla-build.conf`` in the following format:
 
@@ -418,7 +402,6 @@ Some of these plugins used to be enabled by default but, due to
 their release characteristic, have been excluded from the default builds.
 Please read the included ``README.rst`` to learn how to apply them.
 
-
 Additions functionality
 -----------------------
 
@@ -433,6 +416,10 @@ difference between ``plugins-archive`` and ``additions-archive`` is that
 ``plugins-archive`` is automatically copied in many images and processed to
 install available plugins while ``additions-archive`` processing is left solely
 to the Kolla user.
+
+.. note::
+
+   The following is available for source build types only.
 
 To use this, add a section to ``kolla-build.conf`` in the following format:
 
@@ -462,6 +449,10 @@ structure:
    additions-archive.tar
    |__ additions
        |__jenkins
+
+Alternatively, it is also possible to create an ``additions-archive.tar`` file
+yourself bypasssing ``kolla-build.conf`` in order to work with binary build
+type.
 
 The template becomes now:
 
@@ -543,28 +534,6 @@ variables that will be picked up from the user env:
 
 Also these variables could be overwritten using ``--build-args``, which have
 precedence.
-
-Cross-compiling
----------------
-
-It is possible to cross-compile container images in order to, e.g., build
-``aarch64`` images on a ``x86_64`` machine.
-
-To build ``ARM`` images on ``x86_64`` platform, pass the ``--base-arch`` and
-``--platform`` arguments:
-
-.. code-block:: console
-
-   kolla-build --platform linux/arm64 --base-arch aarch64
-
-.. note::
-
-   To make this work on x86_64 platform you can use tools like: `qemu-user-static
-   <https://github.com/multiarch/qemu-user-static>`_ or `binfmt
-   <https://github.com/tonistiigi/binfmt>`_.
-
-   To make this work on Apple Silicon you can use Docker Desktop or Podman
-   Desktop to build ``x86_64`` or native ``ARM`` images.
 
 Known issues
 ============

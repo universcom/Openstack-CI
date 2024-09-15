@@ -87,14 +87,14 @@ This needs to be done for each of the following projects:
 
 * https://launchpad.net/ansible-collection-kolla
 
-* https://launchpad.net/kayobe
-
 At the beginning of a cycle, ensure a named series exists for the cycle in each
 project. If not, create one via the project landing page (e.g.
 https://launchpad.net/kolla) - in the "Series and milestones" section click in
 "Register a series". Once the series has been created, create the necessary
 milestones, including the final release. Series can be marked as "Active
 Development" or "Current Stable Release" as necessary.
+
+Kayobe uses Storyboard, which does not track series or milestones.
 
 Milestones
 ----------
@@ -146,8 +146,8 @@ R-17: Switch source images to current release
 
   * example: https://review.opendev.org/c/openstack/kayobe/+/763375
 
-R-8: Switch images to current release
--------------------------------------
+R-8: Switch binary images to current release
+--------------------------------------------
 
 .. note:: Debian does not provide repositories for the in-development release
           until much later in the cycle.
@@ -157,7 +157,7 @@ R-8: Switch images to current release
 
   * example: https://review.opendev.org/c/openstack/kolla/+/804269
 
-* [kolla] Switch Ubuntu images to use the current in-development release
+* [kolla] Switch Ubuntu binary images to use the current in-development release
   Ubuntu Cloud Archive (UCA) repository
 
   * example: https://review.opendev.org/c/openstack/kolla/+/782308
@@ -171,18 +171,6 @@ R-5: Cycle highlights deadline
   file for the Kolla project, but also cover Kolla Ansible and Kayobe.
 
   * example: https://review.opendev.org/c/openstack/releases/+/779482
-
-* [all] Check for new versions of infrastructure components
-
-  * ansible (incl. kolla-toolbox)
-  * ceph client libraries
-  * fluentd (td-agent)
-  * grafana
-  * mariadb
-  * opensearch
-  * openvswitch/OVN
-  * prometheus (incl. exporters)
-  * rabbitmq/erlang
 
 R-2: Feature freeze
 -------------------
@@ -350,7 +338,7 @@ Prior to creating an RC1 release candidate:
 
   .. code-block:: console
 
-     rsync -a --delete kayobe/etc/kayobe/ kayobe-config/etc/kayobe
+     cp -aR kayobe/etc/kayobe/* kayobe-config/etc/kayobe
 
   Commit the changes and submit for review.
 
@@ -414,7 +402,7 @@ Several tasks are required to finalise the stable branch for release.
 
   * example: https://review.opendev.org/c/openstack/kolla/+/788490
 
-* [kolla] Switch Debian images to use the Debian OpenStack repository
+* [kolla] Switch Debian binary images to use the Debian OpenStack repository
   for the new release
 
   .. note:: This needs to be done on the master branch and stable branch.
@@ -453,26 +441,19 @@ Maintained
 ----------
 
 Releases should be made periodically for each maintained stable branch, no less
-than once every 45 days. We try to make one release per month by having
-a recurring topic for that in the first Kolla meeting each month.
+than once every 45 days.
 
 * Create stable releases by submitting patches to the releases repository
 
-  * follow SemVer guidelines, for simplicity consider always making minor
-    version bumps
+  * follow SemVer guidelines
 
-  * you can use the tooling from the requirements team to prepare the patches::
+  * example (kolla): https://review.opendev.org/650411
 
-      git checkout -b kolla-stable-monthly
-      for project in ansible-collection-kolla kayobe kolla kolla-ansible; do
-          for rel in zed antelope bobcat; do
-              tox -e venv -- new-release $rel $project feature
-          done
-      done
-      git commit -am "Tag monthly kolla stable releases"
-      git review -f
+  * example (kolla-ansible): https://review.opendev.org/650412
 
-  * example release patch: https://review.opendev.org/c/openstack/releases/+/860521
+* Mark milestones on Launchpad as released
+
+* Create new milestones on Launchpad for the next stable releases
 
 Extended Maintenance (EM)
 -------------------------

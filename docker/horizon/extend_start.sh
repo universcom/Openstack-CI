@@ -5,17 +5,36 @@ set -o errexit
 FORCE_GENERATE="${FORCE_GENERATE:-no}"
 HASH_PATH=/var/lib/kolla/.settings.md5sum.txt
 
-SITE_PACKAGES="/var/lib/kolla/venv/lib/python${KOLLA_DISTRO_PYTHON_VERSION}/site-packages"
+if [[ ${KOLLA_INSTALL_TYPE} == "binary" ]]; then
+    if [[ ${KOLLA_BASE_DISTRO} == "debian" ]] || [[ ${KOLLA_BASE_DISTRO} == "ubuntu" ]]; then
+        SITE_PACKAGES="/usr/lib/python3/dist-packages"
+    else
+        SITE_PACKAGES="/usr/lib/python${KOLLA_DISTRO_PYTHON_VERSION}/site-packages"
+    fi
+elif [[ ${KOLLA_INSTALL_TYPE} == "source" ]]; then
+    SITE_PACKAGES="/var/lib/kolla/venv/lib/python${KOLLA_DISTRO_PYTHON_VERSION}/site-packages"
+fi
 
-MANAGE_PY="/var/lib/kolla/venv/bin/python /var/lib/kolla/venv/bin/manage.py"
+if [[ -f "/var/lib/kolla/venv/bin/python" ]]; then
+    MANAGE_PY="/var/lib/kolla/venv/bin/python /var/lib/kolla/venv/bin/manage.py"
+else
+    MANAGE_PY="/usr/bin/python${KOLLA_DISTRO_PYTHON_VERSION} /usr/bin/manage.py"
+fi
 
-if [[ ! -f ${SITE_PACKAGES}/openstack_dashboard/local/local_settings.py ]]; then
+if [[ ${KOLLA_INSTALL_TYPE} == "source" ]] && [[ ! -f ${SITE_PACKAGES}/openstack_dashboard/local/local_settings.py ]]; then
+    ln -s /etc/openstack-dashboard/local_settings \
+        ${SITE_PACKAGES}/openstack_dashboard/local/local_settings.py
+elif [[ ${KOLLA_BASE_DISTRO} == "debian" ]] && [[ ${KOLLA_INSTALL_TYPE} == "binary" ]]; then
+    rm -f ${SITE_PACKAGES}/openstack_dashboard/local/local_settings.py
     ln -s /etc/openstack-dashboard/local_settings \
         ${SITE_PACKAGES}/openstack_dashboard/local/local_settings.py
 fi
 
 if [[ -f /etc/openstack-dashboard/custom_local_settings ]]; then
     CUSTOM_SETTINGS_FILE="${SITE_PACKAGES}/openstack_dashboard/local/custom_local_settings.py"
+    if  [[ ${KOLLA_INSTALL_TYPE} == "binary" ]] && [[ "${KOLLA_BASE_DISTRO}" =~ ubuntu ]]; then
+        CUSTOM_SETTINGS_FILE="/usr/share/openstack-dashboard/openstack_dashboard/local/custom_local_settings.py"
+    fi
 
     if [[ ! -L ${CUSTOM_SETTINGS_FILE} ]]; then
         ln -s /etc/openstack-dashboard/custom_local_settings ${CUSTOM_SETTINGS_FILE}
@@ -69,10 +88,10 @@ function config_designate_dashboard {
     done
 }
 
-function config_fwaas_dashboard {
-    for file in ${SITE_PACKAGES}/neutron_fwaas_dashboard/enabled/_*[^__].py; do
-        config_dashboard "${ENABLE_FWAAS:-no}" \
-            "${SITE_PACKAGES}/neutron_fwaas_dashboard/enabled/${file##*/}" \
+function config_freezer_ui {
+    for file in ${SITE_PACKAGES}/disaster_recovery/enabled/_*[^__].py; do
+        config_dashboard "${ENABLE_FREEZER:-no}" \
+            "${SITE_PACKAGES}/disaster_recovery/enabled/${file##*/}" \
             "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
     done
 }
@@ -137,6 +156,30 @@ function config_masakari_dashboard {
         "${SITE_PACKAGES}/openstack_dashboard/local/local_settings.d/_50_masakari.py"
 }
 
+function config_monasca_ui {
+    config_dashboard "${ENABLE_MONASCA:-no}" \
+        "${SITE_PACKAGES}/monitoring/enabled/_50_admin_add_monitoring_panel.py" \
+        "${SITE_PACKAGES}/openstack_dashboard/local/enabled/_50_admin_add_monitoring_panel.py"
+    config_dashboard "${ENABLE_MONASCA:-no}" \
+        "${SITE_PACKAGES}/monitoring/conf/monitoring_policy.json" \
+        "/etc/openstack-dashboard/monitoring_policy.json"
+}
+
+function config_murano_dashboard {
+    for file in ${SITE_PACKAGES}/muranodashboard/local/enabled/_*[^__].py; do
+        config_dashboard "${ENABLE_MURANO:-no}" \
+            "${SITE_PACKAGES}/muranodashboard/local/enabled/${file##*/}" \
+            "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
+    done
+    config_dashboard "${ENABLE_MURANO:-no}"\
+        "${SITE_PACKAGES}/muranodashboard/conf/murano_policy.json" \
+        "/etc/openstack-dashboard/murano_policy.json"
+
+    config_dashboard "${ENABLE_MURANO:-no}"\
+        "${SITE_PACKAGES}/muranodashboard/local/local_settings.d/_50_murano.py" \
+        "${SITE_PACKAGES}/openstack_dashboard/local/local_settings.d/_50_murano.py"
+}
+
 function config_mistral_dashboard {
     config_dashboard "${ENABLE_MISTRAL:-no}" \
         "${SITE_PACKAGES}/mistraldashboard/enabled/_50_mistral.py" \
@@ -155,6 +198,33 @@ function config_octavia_dashboard {
         "${SITE_PACKAGES}/openstack_dashboard/local/enabled/_1482_project_load_balancer_panel.py"
 }
 
+function config_sahara_dashboard {
+    for file in ${SITE_PACKAGES}/sahara_dashboard/enabled/_*[^__].py; do
+        config_dashboard "${ENABLE_SAHARA:-no}" \
+            "${SITE_PACKAGES}/sahara_dashboard/enabled/${file##*/}" \
+            "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
+    done
+}
+
+function config_senlin_dashboard {
+    for file in ${SITE_PACKAGES}/senlin_dashboard/enabled/_*[^__].py; do
+        config_dashboard "${ENABLE_SENLIN:-no}" \
+            "${SITE_PACKAGES}/senlin_dashboard/enabled/${file##*/}" \
+            "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
+    done
+
+    config_dashboard "${ENABLE_SENLIN:-no}" \
+        "${SITE_PACKAGES}/senlin_dashboard/conf/senlin_policy.json" \
+        "/etc/openstack-dashboard/senlin_policy.json"
+}
+
+function config_solum_dashboard {
+    for file in ${SITE_PACKAGES}/solumdashboard/local/enabled/_*[^__].py; do
+        config_dashboard "${ENABLE_SOLUM:-no}" \
+            "${SITE_PACKAGES}/solumdashboard/local/enabled/${file##*/}" \
+            "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
+    done
+}
 
 function config_tacker_dashboard {
     for file in ${SITE_PACKAGES}/tacker_horizon/enabled/_*[^__].py; do
@@ -172,10 +242,10 @@ function config_trove_dashboard {
     done
 }
 
-function config_venus_dashboard {
-    for file in ${SITE_PACKAGES}/venus_dashboard/enabled/_*[^__].py; do
-        config_dashboard "${ENABLE_VENUS:-no}" \
-            "${SITE_PACKAGES}/venus_dashboard/enabled/${file##*/}" \
+function config_vitrage_dashboard {
+    for file in ${SITE_PACKAGES}/vitrage_dashboard/enabled/_*[^__].py; do
+        config_dashboard "${ENABLE_VITRAGE:-no}" \
+            "${SITE_PACKAGES}/vitrage_dashboard/enabled/${file##*/}" \
             "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
     done
 }
@@ -225,18 +295,23 @@ function settings_changed {
 config_blazar_dashboard
 config_cloudkitty_dashboard
 config_designate_dashboard
-config_fwaas_dashboard
+config_freezer_ui
 config_heat_dashboard
 config_ironic_dashboard
 config_magnum_dashboard
 config_manila_ui
 config_masakari_dashboard
 config_mistral_dashboard
+config_monasca_ui
+config_murano_dashboard
 config_neutron_vpnaas_dashboard
 config_octavia_dashboard
+config_sahara_dashboard
+config_senlin_dashboard
+config_solum_dashboard
 config_tacker_dashboard
 config_trove_dashboard
-config_venus_dashboard
+config_vitrage_dashboard
 config_watcher_dashboard
 config_zun_dashboard
 
@@ -261,3 +336,8 @@ if [[ -f ${SITE_PACKAGES}/openstack_dashboard/local/.secret_key_store ]] && [[ $
 fi
 
 . /usr/local/bin/kolla_httpd_setup
+
+if [[ "${KOLLA_BASE_DISTRO}" == "debian" ]] && [[ ${KOLLA_INSTALL_TYPE} == "binary" ]]; then
+    APACHE_RUN_GROUP=horizon
+    APACHE_RUN_USER=horizon
+fi

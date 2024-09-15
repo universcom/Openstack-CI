@@ -3,7 +3,7 @@ Adding a new image
 ==================
 
 Kolla follows `Best practices for writing Dockerfiles
-<https://docs.docker.com/develop/develop-images/dockerfile_best-practices/>`__
+<https://docs.docker.com/engine/userguide/eng-image/dockerfile_best-practices/>`__
 where at all possible.
 
 We use ``jinja2`` templating syntax to help manage the volume and complexity
@@ -40,6 +40,10 @@ OpenStack project base image is as follows:
 
    {% import "macros.j2" as macros with context %}
 
+   << binary specific steps >>
+
+   << source specific steps >>
+
    << common steps >>
 
    {% block << service >>_footer %}{% endblock %}
@@ -63,24 +67,27 @@ doable so we have list of `unbuildable images` for that.
 Unbuildable images
 ~~~~~~~~~~~~~~~~~~
 
-In ``kolla/image/unbuildable.py`` source file we keep a list of images which
-cannot be built for some distribution/architecture/build-type combinations.
+In ``kolla/image/build.py`` source file we keep a list of images which cannot
+be built for some distribution/architecture/build-type combinations.
 
 .. code-block:: python
 
-   # Note: These are just examples, find the current list at
-   # https://opendev.org/openstack/kolla/src/branch/master/kolla/image/unbuildable.py
    UNBUILDABLE_IMAGES = {
        'aarch64': {
-           "bifrost-base",    # someone need to get upstream working first
+           "bifrost-base",      # someone need to get upstream working first
        },
 
-       'centos': {
-           "hacluster-pcs",   # Missing crmsh package
+       'binary': {
+           "bifrost-base",
+           "blazar-base",
+       },
+
+       'ubuntu': {
+          "qdrouterd",  # There is no qdrouterd package for ubuntu bionic
        },
 
        'ubuntu+aarch64': {
-           "kibana",          # no binary package
+           "kibana",        # no binary package
        },
    }
 

@@ -1,4 +1,4 @@
-FROM {{ namespace }}/{{ image_prefix }}prometheus-base:{{ tag }}
+FROM {{ namespace }}/{{ infra_image_prefix }}prometheus-base:{{ tag }}
 {% block labels %}
 LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build_date }}"
 {% endblock %}
@@ -6,6 +6,11 @@ LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build
 {% block prometheus_blackbox_exporter_header %}{% endblock %}
 
 {% import "macros.j2" as macros with context %}
+
+{% block prometheus_blackbox_exporter_repository_version %}
+ARG blackbox_exporter_version=0.16.0
+ARG blackbox_exporter_url=https://github.com/prometheus/blackbox_exporter/releases/download/v${blackbox_exporter_version}/blackbox_exporter-${blackbox_exporter_version}.linux-{{debian_arch}}.tar.gz 
+{% endblock %}
 
 {% if base_package_type == 'rpm' %}
     {% set blackbox_packages = [
@@ -20,12 +25,11 @@ LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build
 {{ macros.install_packages(blackbox_packages | customizable("packages")) }}
 
 {% block prometheus_blackbox_exporter_install %}
-ADD prometheus-blackbox-exporter-archive /prometheus-blackbox-exporter-source
-
-RUN ln -s /prometheus-blackbox-exporter-source/* prometheus-blackbox-exporter \
-    && mkdir -p /opt/blackbox_exporter/ \
-    && cp /prometheus-blackbox-exporter/blackbox_exporter /opt/blackbox_exporter/ \
-    && setcap cap_net_raw+ep /opt/blackbox_exporter/blackbox_exporter
+RUN curl -o /tmp/blackbox_exporter.tar.gz ${blackbox_exporter_url} \
+    && tar xvf /tmp/blackbox_exporter.tar.gz -C /opt/ \
+    && rm -f /tmp/blackbox_exporter.tar.gz \
+    && ln -s /opt/blackbox_exporter* /opt/blackbox_exporter
+RUN setcap cap_net_raw+ep /opt/blackbox_exporter/blackbox_exporter
 {% endblock %}
 
 {% block prometheus_blackbox_exporter_footer %}{% endblock %}

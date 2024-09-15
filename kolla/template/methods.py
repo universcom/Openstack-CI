@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -100,7 +102,13 @@ def handle_repos(context, reponames, mode):
             repo_data[name] = params
 
     base_package_type = context.get('base_package_type')
+
     base_distro = context.get('base_distro')
+
+    if (base_distro == 'centos' and
+            context.get('base_distro_tag', 'stream8').startswith('stream9')):
+        base_distro = "centos9"
+
     base_arch = context.get('base_arch')
 
     commands = ''

@@ -99,7 +99,7 @@ Day to Day
 
 * Be available in IRC to help new and existing contributors
 
-* Keep track of the progress of cycle priorities
+* Keep track of the progress of cycle priorites
 
 * Monitor the core team membership, mentor potential cores
 

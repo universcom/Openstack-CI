@@ -55,7 +55,7 @@ class MethodsTest(base.TestCase):
         result = methods.handle_repos(template_vars, ['grafana', 'ceph'],
                                       'enable')
         expectCmd = 'RUN dnf config-manager  --enable grafana '
-        expectCmd += '--enable centos-ceph-reef || true'
+        expectCmd += '--enable centos-ceph-pacific || true'
         self.assertEqual(expectCmd, result)
 
     def test_enable_repos_debian(self):
@@ -66,7 +66,7 @@ class MethodsTest(base.TestCase):
         }
 
         result = methods.handle_repos(template_vars, ['grafana'], 'enable')
-        expectCmd = "RUN echo 'Uris: https://apt.grafana.com' "
+        expectCmd = "RUN echo 'Uris: https://packages.grafana.com/oss/deb' "
         expectCmd += ">/etc/apt/sources.list.d/grafana.sources && "
         expectCmd += "echo 'Components: main' "
         expectCmd += ">>/etc/apt/sources.list.d/grafana.sources && "
@@ -86,7 +86,7 @@ class MethodsTest(base.TestCase):
         }
 
         result = methods.handle_repos(template_vars, ['rabbitmq'], 'enable')
-        expectCmd = "RUN echo 'Uris: https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian' "  # noqa: E501
+        expectCmd = "RUN echo 'Uris: https://ppa1.novemberain.com/rabbitmq/rabbitmq-server/deb/debian' "  # noqa: E501
         expectCmd += ">/etc/apt/sources.list.d/rabbitmq.sources && "
         expectCmd += "echo 'Components: main' "
         expectCmd += ">>/etc/apt/sources.list.d/rabbitmq.sources && "
@@ -119,9 +119,9 @@ class MethodsTest(base.TestCase):
             'base_package_type': 'deb'
         }
 
-        result = methods.handle_repos(template_vars, ['grafana', 'rabbitmq'],
+        result = methods.handle_repos(template_vars, ['grafana', 'kibana'],
                                       'enable')
-        expectCmd = "RUN echo 'Uris: https://apt.grafana.com' "
+        expectCmd = "RUN echo 'Uris: https://packages.grafana.com/oss/deb' "
         expectCmd += ">/etc/apt/sources.list.d/grafana.sources && "
         expectCmd += "echo 'Components: main' "
         expectCmd += ">>/etc/apt/sources.list.d/grafana.sources && "
@@ -133,16 +133,16 @@ class MethodsTest(base.TestCase):
         expectCmd += ">>/etc/apt/sources.list.d/grafana.sources && "
 
         expectCmd += "echo 'Uris: "
-        expectCmd += "https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-server/deb/debian' "  # noqa: E501
-        expectCmd += ">/etc/apt/sources.list.d/rabbitmq.sources && "
+        expectCmd += "https://artifacts.elastic.co/packages/oss-7.x/apt' "
+        expectCmd += ">/etc/apt/sources.list.d/kibana.sources && "
         expectCmd += "echo 'Components: main' "
-        expectCmd += ">>/etc/apt/sources.list.d/rabbitmq.sources && "
+        expectCmd += ">>/etc/apt/sources.list.d/kibana.sources && "
         expectCmd += "echo 'Types: deb' "
-        expectCmd += ">>/etc/apt/sources.list.d/rabbitmq.sources && "
-        expectCmd += "echo 'Suites: bullseye' "
-        expectCmd += ">>/etc/apt/sources.list.d/rabbitmq.sources && "
-        expectCmd += "echo 'Signed-By: /etc/kolla/apt-keys/rabbitmq.gpg' "
-        expectCmd += ">>/etc/apt/sources.list.d/rabbitmq.sources"
+        expectCmd += ">>/etc/apt/sources.list.d/kibana.sources && "
+        expectCmd += "echo 'Suites: stable' "
+        expectCmd += ">>/etc/apt/sources.list.d/kibana.sources && "
+        expectCmd += "echo 'Signed-By: /etc/kolla/apt-keys/elasticsearch.asc' "
+        expectCmd += ">>/etc/apt/sources.list.d/kibana.sources"
 
         self.assertEqual(expectCmd, result)
 
@@ -167,7 +167,7 @@ class MethodsTest(base.TestCase):
         result = methods.handle_repos(template_vars, ['grafana', 'ceph'],
                                       'disable')
         expectCmd = 'RUN dnf config-manager  --disable grafana '
-        expectCmd += '--disable centos-ceph-reef || true'
+        expectCmd += '--disable centos-ceph-pacific || true'
         self.assertEqual(expectCmd, result)
 
     # NOTE(hrw): there is no disabling of repos for Debian/Ubuntu

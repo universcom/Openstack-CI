@@ -26,6 +26,9 @@ ENV KOLLA_BASE_DISTRO={{ base_distro }} \
     KOLLA_DISTRO_PYTHON_VERSION={{ distro_python_version }} \
     KOLLA_BASE_ARCH={{ base_arch }}
 
+{# NOTE(frickler): sledgehammer workaround until pkgs are updated to build with setuptools==60.0.0 properly #}
+ENV SETUPTOOLS_USE_DISTUTILS=stdlib
+
 
 #### Customize PS1 to be used with bash shell
 COPY kolla_bashrc /tmp/
@@ -53,6 +56,10 @@ COPY dnf.conf /etc/dnf/dnf.conf
 {% endblock %}
 
 #### BEGIN REPO ENABLEMENT
+{#
+Repo files not available for CentOS Stream 9:
+    'elasticsearch.repo',  # signed with SHA1 key https://github.com/elastic/elasticsearch/issues/85876
+ #}
 {% set base_yum_repo_files = [
     'grafana.repo',
     'influxdb.repo',
@@ -63,10 +70,24 @@ COPY dnf.conf /etc/dnf/dnf.conf
     'td.repo',
 ] %}
 
+{% if base_distro == "centos" and base_distro_tag.startswith('stream8') %}
+{% set base_yum_repo_files = base_yum_repo_files + [
+    'elasticsearch.repo',
+] %}
+{% endif %}
+
 {% set base_yum_url_packages = [
 ] %}
 
+{#
+SHA1 keys are not supported in RHEL9: https://github.com/rpm-software-management/rpm/issues/1977
+    'https://artifacts.elastic.co/GPG-KEY-elasticsearch',
+ #}
 {% set base_yum_repo_keys = [
+    'https://downloads.mariadb.com/MariaDB/RPM-GPG-KEY-MariaDB',
+    'https://repo.proxysql.com/ProxySQL/repo_pub_key',
+    'https://github.com/rabbitmq/signing-keys/releases/download/2.0/rabbitmq-release-signing-key.asc',
+    'https://packages.treasuredata.com/GPG-KEY-td-agent',
 ] %}
 
 {% if base_arch == 'x86_64' %}
@@ -74,15 +95,14 @@ COPY dnf.conf /etc/dnf/dnf.conf
         'rabbitmq_rabbitmq-erlang.repo',
     ] %}
 
+    {% set base_yum_repo_keys = base_yum_repo_keys + [
+        'https://repos.influxdata.com/influxdb.key',
+    ] %}
 {% elif base_arch == 'aarch64' %}
     {% set base_yum_repo_files = base_yum_repo_files + [
         'hrw-copr-erlang-for-rabbitmq.repo',
     ] %}
 
-{#
-SHA1 keys are not supported in RHEL9: https://github.com/rpm-software-management/rpm/issues/1977
-        'https://packages.erlang-solutions.com/rpm/erlang_solutions.asc',
- #}
     {% set base_yum_repo_keys = base_yum_repo_keys + [
     ] %}
 {% endif %}
@@ -123,18 +143,38 @@ RUN rm -f /etc/rpm/macros.image-language-conf \
 
 {% block base_centos_repo_overrides_post_rpm %}{% endblock %}
 
+    {% if base_distro in ['centos', 'rocky'] %}
+
 {% block base_centos_gpg_key_import %}
 {% endblock %}
 
 {% set base_centos_yum_repo_keys = [
 ] %}
 
+{% if base_distro in ['centos', 'rocky'] %}
+
+{% if base_distro_tag.startswith('stream9') or base_distro == 'rocky' %}
+
 {% set base_centos_yum_repo_packages = [
-    'centos-release-ceph-reef',
+    'centos-release-openstack-yoga',
+    'centos-release-opstools',
+    'epel-release',
+] %}
+
+{% else %}
+
+{% set base_centos_yum_repo_packages = [
+    'centos-release-nfv-extras',
+    'centos-release-openstack-yoga',
+    'centos-release-ceph-pacific',
     'centos-release-nfv-openvswitch',
     'centos-release-opstools',
     'epel-release',
 ] %}
+
+{% endif %}
+
+{% endif %}
 
 # We need 'dnf-plugins-core' for 'dnf config-manager'
 {% set base_centos_yum_repo_packages = base_centos_yum_repo_packages + [
@@ -143,29 +183,41 @@ RUN rm -f /etc/rpm/macros.image-language-conf \
 {% set base_centos_yum_repos_to_enable = [
 ] %}
 
-# FIXME(hrw): entries not starting with 'centos-' (and 'centos-nfv-ovs') are
-# from delorean or rdo-release-* package
-# https://review.rdoproject.org/r/c/rdo-infra/ansible-role-dlrn/+/33241
+{% if base_distro in ['centos', 'rocky'] %}
+
+{% if base_distro_tag.startswith('stream9') or base_distro == 'rocky' %}
+
 {% set base_centos_yum_repos_to_disable = [
-    'centos-ceph-reef',
+    'centos-ceph-pacific',
     'centos-nfv-openvswitch',
     'centos-opstools',
-    'centos9-nfv-ovs',
-    'centos9-opstools',
-    'centos9-rabbitmq',
-    'centos9-storage',
+    'centos-rabbitmq-38',
     'epel',
-    'influxdb',
     'opensearch-2.x',
     'opensearch-dashboards-2.x',
+    'influxdb',
 ] %}
 
-{% if base_arch == 'aarch64' %}
+{% else %}
 
-{# NOTE(hrw): delorean-deps.repo may force x86-64 repos #}
+{% set base_centos_yum_repos_to_disable = [
+    'centos-advanced-virtualization',
+    'centos-ceph-pacific',
+    'centos-nfv-extras',
+    'centos-nfv-openvswitch',
+    'centos-opstools',
+    'centos-rabbitmq-38',
+    'epel',
+] %}
 
-RUN sed -i -e "s/x86_64/aarch64/g" /etc/yum.repos.d/delorean-deps.repo
+{% endif %}
 
+{% endif %}
+
+{% if base_arch == 'x86_64' %}
+    {% set base_centos_yum_repos_to_disable = base_centos_yum_repos_to_disable + [
+        'influxdb',
+    ] %}
 {% endif %}
 
 RUN {{ macros.install_packages(base_centos_yum_repo_packages | customizable("centos_yum_repo_packages"), chain=True, clean=False) }}
@@ -177,6 +229,9 @@ RUN {{ macros.install_packages(base_centos_yum_repo_packages | customizable("cen
 {%- for key in base_centos_yum_repo_keys | customizable('centos_yum_repo_keys') %} && rpm --import {{ key }} {% endfor %} \
 {% block base_centos_repo_overrides_post_yum %}{% endblock -%}
     && {{ macros.rpm_security_update(clean_package_cache) }}
+
+    {%- endif %}
+    {# Endif for base_distro centos #}
 
 #### END REPO ENABLEMENT
 
@@ -213,6 +268,16 @@ RUN {{ macros.install_packages(base_centos_yum_repo_packages | customizable("cen
 
 {# endif for base_package_type rpm #}
 {% elif base_package_type == 'deb' %}
+# Customize PS1 bash shell
+# - enlarge 'system users' range so 'haproxy' package will not complain
+#   see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=939470
+# - enlarge 'system groups' range so 'hacluster' user added in
+#   https://review.opendev.org/c/openstack/kolla/+/802671
+#   can be in 'haclient' group with same high uid
+RUN cat /tmp/kolla_bashrc >> /etc/bash.bashrc \
+    && sed -i -e s/LAST_SYSTEM_UID=999/LAST_SYSTEM_UID=59999/g \
+              -e s/LAST_SYSTEM_GID=999/LAST_SYSTEM_GID=59999/g /etc/adduser.conf
+
 # This will prevent questions from being asked during the install
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -223,7 +288,6 @@ COPY dpkg_reducing_disk_footprint /etc/dpkg/dpkg.cfg.d/dpkg_reducing_disk_footpr
 # curl and ca-certificates to fetch remote keys via http
 # gnupg to fetch keys directly from keyserver
 {% set base_ubuntu_package_pre_packages = [
-    'adduser',
     'ca-certificates',
     'curl',
     'gnupg'
@@ -237,19 +301,8 @@ COPY dpkg_reducing_disk_footprint /etc/dpkg/dpkg.cfg.d/dpkg_reducing_disk_footpr
 {{ macros.install_packages(base_ubuntu_package_pre_packages | customizable("base_ubuntu_package_pre_packages")) }}
 {% endblock %}
 
-# Customize PS1 bash shell
-# - enlarge 'system users' range so 'haproxy' package will not complain
-#   see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=939470
-# - enlarge 'system groups' range so 'hacluster' user added in
-#   https://review.opendev.org/c/openstack/kolla/+/802671
-#   can be in 'haclient' group with same high uid
-RUN cat /tmp/kolla_bashrc >> /etc/bash.bashrc \
-    && sed -i -e s/#*LAST_SYSTEM_UID=999/LAST_SYSTEM_UID=59999/g \
-              -e s/#*LAST_SYSTEM_GID=999/LAST_SYSTEM_GID=59999/g /etc/adduser.conf
-
 {% block base_ubuntu_package_sources_list %}
 {% if base_distro == 'debian' or ( base_distro == 'ubuntu' and base_arch == 'x86_64' ) %}
-RUN rm -f /etc/apt/sources.list.d/debian.sources
 COPY sources.list.{{ base_distro }} /etc/apt/sources.list
 {% else %}
 COPY sources.list.{{ base_distro }}.{{ base_arch }} /etc/apt/sources.list
@@ -264,7 +317,7 @@ COPY sources.list /etc/apt/sources.list.d/kolla-custom.list
 
 RUN apt update \
  && apt install -y --no-install-recommends extrepo \
- && extrepo enable openstack_caracal \
+ && extrepo enable openstack_yoga \
  && apt purge -y extrepo \
  && apt --purge autoremove -y \
  && apt clean
@@ -272,7 +325,7 @@ RUN apt update \
 {% endif %}
 
 {% block base_ubuntu_package_apt_preferences %}
-COPY apt_preferences.{{ base_distro }} /etc/apt/preferences
+COPY apt_preferences.{{ base_distro }}.{{ base_arch }} /etc/apt/preferences
 COPY apt_preferences /etc/apt/preferences.d/kolla-custom
 {% endblock %}
 
@@ -295,18 +348,28 @@ COPY apt_preferences /etc/apt/preferences.d/kolla-custom
 ] %}
 
 {% set base_apt_keys = [
-   {'name': 'erlang-ppa', 'keyid': 'F77F1EDA57EBB1CC'},
    {'name': 'rabbitmq',   'keyid': '9F4587F226208342'},
    {'name': 'haproxy',    'keyid': 'CFFB779AADC995E4F350A060505D97A41C61B9CD'},
 ] %}
 
+{% if base_arch == "aarch64" %}
+{% set base_apt_keys = base_apt_keys + [
+  {'name': 'erlang-ppa', 'keyid': 'F77F1EDA57EBB1CC'},
+] %}
+{% else %}
+{% set base_apt_keys = base_apt_keys + [
+  {'name': 'erlang-ppa', 'keyid': 'E495BB49CC4BBE5B'},
+] %}
+{% endif %}
+
 {# NOTE(hrw): type field defaults to 'asc' which is used for single keys #}
 {% set base_remote_apt_keys = [
-   {'name': 'grafana', 'url': 'https://rpm.grafana.com/gpg.key'},
+   {'name': 'elasticsearch', 'url': 'https://artifacts.elastic.co/GPG-KEY-elasticsearch'},
+   {'name': 'grafana', 'url': 'https://packages.grafana.com/gpg.key'},
    {'name': 'influxdb', 'url': 'https://repos.influxdata.com/influxdata-archive_compat.key'},
    {'name': 'mariadb', 'url': 'https://downloads.mariadb.com/MariaDB/mariadb-keyring-2019.gpg', 'type': 'gpg'},
    {'name': 'opensearch', 'url': 'https://artifacts.opensearch.org/publickeys/opensearch.pgp'},
-   {'name': 'proxysql', 'url': 'https://repo.proxysql.com/ProxySQL/proxysql-2.6.x/repo_pub_key'},
+   {'name': 'proxysql', 'url': 'https://repo.proxysql.com/ProxySQL/repo_pub_key'},
    {'name': 'treasuredata', 'url': 'https://packages.treasuredata.com/GPG-KEY-td-agent'},
 ] %}
 
@@ -328,7 +391,7 @@ COPY apt_preferences /etc/apt/preferences.d/kolla-custom
             {% endif -%}
         {% endfor %}
     {% endblock %}
-RUN apt-get --error-on=any update \
+RUN apt-get update \
     && apt-get -y install locales \
     && sed -e "s/# $LANG UTF-8/$LANG UTF-8/g" /etc/locale.gen -i \
     && locale-gen "$LANG" \
@@ -358,7 +421,6 @@ RUN sed -ri '/-session(\s+)optional(\s+)pam_systemd.so/d' /etc/pam.d/system-auth
 COPY set_configs.py /usr/local/bin/kolla_set_configs
 COPY start.sh /usr/local/bin/kolla_start
 COPY copy_cacerts.sh /usr/local/bin/kolla_copy_cacerts
-COPY install_projects.sh /usr/local/bin/kolla_install_projects
 COPY httpd_setup.sh /usr/local/bin/kolla_httpd_setup
 COPY sudoers /etc/sudoers
 
@@ -376,11 +438,7 @@ RUN chmod 755 /usr/local/bin/healthcheck_*
 {% endif %}
 
 RUN touch /usr/local/bin/kolla_extend_start \
-    && chmod 755 /usr/local/bin/kolla_start \
-                 /usr/local/bin/kolla_set_configs \
-                 /usr/local/bin/kolla_copy_cacerts \
-                 /usr/local/bin/kolla_install_projects \
-    && chmod 644 /usr/local/bin/kolla_extend_start /usr/local/bin/kolla_httpd_setup \
+    && chmod 755 /usr/local/bin/kolla_start /usr/local/bin/kolla_extend_start /usr/local/bin/kolla_set_configs /usr/local/bin/kolla_copy_cacerts /usr/local/bin/kolla_httpd_setup \
     && chmod 440 /etc/sudoers \
     && mkdir -p /var/log/kolla \
     && chown :kolla /var/log/kolla \

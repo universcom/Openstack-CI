@@ -1,4 +1,0 @@
----
-upgrade:
-  - |
-    ``Freezer`` container images have been dropped.

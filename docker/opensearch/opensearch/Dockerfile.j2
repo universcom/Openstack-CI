@@ -14,16 +14,21 @@ LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build
         'opensearch'
     ] %}
 
-ENV OPENSEARCH_INITIAL_ADMIN_PASSWORD="Kolla24OpenSearch"
+{% if base_distro_tag.startswith('stream9') or base_distro == 'rocky' %}
+{# TODO: OpenSearch will move from SHA1 in 2.8 release, remove this when 2.8 is out #}
+RUN update-crypto-policies --set DEFAULT:SHA1
+{% endif %}
 
-{{ macros.install_packages(opensearch_packages | customizable("packages")) }}
-
-RUN chown -R opensearch:opensearch /usr/share/opensearch
+{# TODO: ugly hack to get past opensearch postinst, remove once #}
+{# https://github.com/opensearch-project/opensearch-build/pull/3435 gets merged #}
+{# and packages get rebuilt #}
+RUN touch /usr/bin/systemd-tmpfiles && chmod a+rx /usr/bin/systemd-tmpfiles \
+    && {{ macros.install_packages(opensearch_packages | customizable("packages"), chain=True) }}
 
 COPY extend_start.sh /usr/local/bin/kolla_extend_start
 RUN chmod 755 /usr/local/bin/kolla_extend_start
 
-{% block opensearch_footer %}{% endblock %}
+{% block elasticsearch_footer %}{% endblock %}
 {% block footer %}{% endblock %}
 
 USER opensearch

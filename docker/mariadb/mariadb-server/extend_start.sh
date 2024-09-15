@@ -20,12 +20,9 @@ function bootstrap_db {
     done
 
     sudo -E kolla_security_reset
-
-    set +o xtrace
     mysql -u root --password="${DB_ROOT_PASSWORD}" -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}' WITH GRANT OPTION;"
     mysql -u root --password="${DB_ROOT_PASSWORD}" -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '${DB_ROOT_PASSWORD}' WITH GRANT OPTION;"
     mysqladmin -uroot -p"${DB_ROOT_PASSWORD}" shutdown
-    set -o xtrace
 }
 
 # Create log directory, with appropriate permissions
@@ -38,8 +35,8 @@ fi
 
 # This catches all cases of the BOOTSTRAP variable being set, including empty
 if [[ "${!KOLLA_BOOTSTRAP[@]}" ]]; then
-    mysql_install_db 2>&1 | tee -a ${MARIADB_LOG_DIR}/mariadb-bootstrap.log
-    bootstrap_db 2>&1 | tee -a ${MARIADB_LOG_DIR}/mariadb-bootstrap.log
+    mysql_install_db
+    bootstrap_db
     exit 0
 fi
 
@@ -52,7 +49,7 @@ if [[ "${!KOLLA_UPGRADE[@]}" ]]; then
     # There doesn't seem to be anything in the directory, so remove it.
     rm -rf /var/lib/mysql/.pki
 
-    mysql_upgrade --host=${DB_HOST} --port=${DB_PORT} --user=root --password="${DB_ROOT_PASSWORD}" 2>&1 | tee -a ${MARIADB_LOG_DIR}/mariadb-upgrade.log
+    mysql_upgrade --host=${DB_HOST} --port=${DB_PORT} --user=root --password="${DB_ROOT_PASSWORD}"
     exit 0
 fi
 

@@ -1,4 +1,0 @@
----
-upgrade:
-  - |
-    Upgraded prometheus-alertmanager to version ``0.27.0``.

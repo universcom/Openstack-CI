@@ -1,4 +1,0 @@
----
-upgrade:
-  - |
-    ``Sahara`` container images have been dropped.

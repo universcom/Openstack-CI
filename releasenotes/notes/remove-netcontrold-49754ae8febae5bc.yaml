@@ -1,4 +1,0 @@
----
-upgrade:
-  - |
-    The ``openvswitch-netcontrold`` image has been dropped.

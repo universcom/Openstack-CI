@@ -9,17 +9,37 @@ LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build
 
 {{ macros.configure_user(name='placement') }}
 
-{% if base_package_type == 'rpm' %}
+{% if install_type == 'binary' %}
 
-    {% set placement_base_packages = [
-    ] %}
+    {% if base_package_type == 'rpm' %}
 
-{% elif base_package_type == 'deb' %}
+        {% set placement_base_packages = [
+            'openstack-placement-common',
+        ] %}
 
-    {% set placement_base_packages = [
-    ] %}
+    {% elif base_package_type == 'deb' %}
 
-{% endif %}
+        {% set placement_base_packages = [
+            'placement-common',
+        ] %}
+
+    {% endif %}
+
+{{ macros.install_packages(placement_base_packages | customizable("packages")) }}
+
+{% elif install_type == 'source' %}
+
+    {% if base_package_type == 'rpm' %}
+
+        {% set placement_base_packages = [
+        ] %}
+
+    {% elif base_package_type == 'deb' %}
+
+        {% set placement_base_packages = [
+        ] %}
+
+    {% endif %}
 
 {{ macros.install_packages(placement_base_packages | customizable("packages")) }}
 
@@ -30,13 +50,17 @@ ADD plugins-archive /
     '/placement'
 ] %}
 
-COPY extend_start.sh /usr/local/bin/kolla_extend_start
-
 RUN ln -s placement-base-source/* placement \
     && {{ macros.install_pip(placement_base_pip_packages | customizable("pip_packages")) }} \
     && mkdir -p /etc/placement/ \
     && cp -r /placement/etc/placement/* /etc/placement/ \
-    && touch /usr/local/bin/kolla_placement_extend_start \
-    && chmod 644 /usr/local/bin/kolla_extend_start /usr/local/bin/kolla_placement_extend_start
+    && chown -R placement: /etc/placement/
+
+{% endif %}
+
+COPY extend_start.sh /usr/local/bin/kolla_extend_start
+
+RUN touch /usr/local/bin/kolla_placement_extend_start \
+    && chmod 755 /usr/local/bin/kolla_extend_start /usr/local/bin/kolla_placement_extend_start
 
 {% block placement_base_footer %}{% endblock %}

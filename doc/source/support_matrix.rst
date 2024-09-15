@@ -17,9 +17,10 @@ The following base container images are supported:
 ================== =============================== ================
 Distribution       Default base                    Default base tag
 ================== =============================== ================
+CentOS Stream 8    quay.io/centos/centos           stream8
 Rocky Linux        quay.io/rockylinux/rockylinux   9
 Debian Bullseye    debian                          bullseye
-Ubuntu Jammy       ubuntu                          22.04
+Ubuntu Focal       ubuntu                          20.04
 ================== =============================== ================
 
 The remainder of this document outlines which images are supported on which of
@@ -44,14 +45,12 @@ Coverage:
 * CI in ``kolla-ansible`` is testing that images are functional
 * kolla core team is maintaining versions
 
-U - Untested
-------------
+C - Community maintained
+------------------------
 
 Coverage:
 
-* CI in ``kolla-ansible`` is *NOT* testing that images are functional
-* Many untested services are working fine, but the kolla core team cannot
-  guarantee that they are all functional
+* supported by the broader community (not core team) or not supported at all
 
 N - Not Available/Unknown
 -------------------------
@@ -63,7 +62,7 @@ x86_64 images
 =============
 
 .. csv-table:: x86_64 images
-   :header-rows: 1
+   :header-rows: 2
    :stub-columns: 1
    :widths: auto
    :file: ./matrix_x86.csv
@@ -72,7 +71,7 @@ aarch64 images
 ==============
 
 .. csv-table:: aarch64 images
-   :header-rows: 1
+   :header-rows: 2
    :stub-columns: 1
    :widths: auto
    :file: ./matrix_aarch64.csv

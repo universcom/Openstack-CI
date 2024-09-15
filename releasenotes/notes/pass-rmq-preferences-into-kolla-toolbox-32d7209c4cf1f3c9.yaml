@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixes an issue where kolla-toolbox will fail to build due to mismatched
-    rabbitmq-server dependencies.
-    `LP#2066171 <https://launchpad.net/bugs/2066171>`__
